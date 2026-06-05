@@ -24,7 +24,6 @@ export default function Header() {
       path: '/gioi-thieu',
       children: [
         { label: 'Giới thiệu chung', path: '/gioi-thieu' },
-        { label: 'Sơ đồ tổ chức', path: '/gioi-thieu#co-cau' },
         { label: 'Ban Chấp hành', path: '/ban-chap-hanh' },
         { label: 'Ban Thường vụ', path: '/ban-thuong-vu' },
         { label: 'Ban Kiểm tra', path: '/ban-kiem-tra' }
@@ -39,7 +38,7 @@ export default function Header() {
         { label: 'Đăng ký Hội viên', path: '/dang-ky' }
       ]
     },
-    { label: 'Tin tức', path: '/tin-tuc', children: [] },
+    { label: 'Tin tức', path: '/tin-tuc/', children: [] },
     { label: 'Sự kiện', path: '/su-kien', children: [] },
     { label: 'Văn bản', path: '/van-ban', children: [] },
     { label: 'Liên hệ', path: '/lien-he', children: [] },
@@ -47,8 +46,8 @@ export default function Header() {
   const [logoUrl, setLogoUrl] = useState('https://lh3.googleusercontent.com/aida-public/AB6AXuDGqQKdtsfpnEDKd7JAu8yQBX437NF9yre-G8AhC0L2jkhp6KVKASaL_r8TGZh_QRNtxoTKJXj2RXxkHdzbloP5qr9ddoI8OKoucsW0qAAsP4BTZGw_OuSxkWH_7yIFBmg6xnEcQ6TW4JHRFli25nYMjoLZ2HCRMhbnXTVG7sJKa0uboKFQS39PjtPXOEjGCHqrOCfHNMf3fKTvNlIsHiQw4bsKOCnLrOmA4gvrVMw8OI1QXoKnQvFoERk0EIu4ye4Mgt_9-lpAzjg');
   const [logoTitle, setLogoTitle] = useState('HOBA LPG');
   const [logoSubtitle, setLogoSubtitle] = useState('HCMC LPG Business Association');
-  const [contactEmail, setContactEmail] = useState('info@hoba.vn');
-  const [contactPhone, setContactPhone] = useState('028 3831 6671');
+  const [contactEmail, setContactEmail] = useState('info@hobalpg.vn');
+  const [contactPhone, setContactPhone] = useState('028 3831 66710');
 
   // Safeguard: Redirect if the server served the public layout for an admin path
   useEffect(() => {
