@@ -521,9 +521,20 @@ export default function MembersPage() {
     });
   }, [chapterList, memberList]);
 
-  // Filtered Members
+  // Filtered & Sorted Members
   const filteredMembers = useMemo(() => {
-    return memberList.filter((m) => {
+    const ROLE_PRIORITY: Record<string, number> = {
+      'Chủ tịch': 1,
+      'Phó Chủ tịch': 2,
+      'Ủy viên Ban Thường vụ': 3,
+      'Ủy viên Ban Chấp hành': 4,
+      'Ủy viên BCH': 4,
+      'Ban kiểm tra': 5,
+      'Hội viên chính thức': 6,
+      'Hội viên liên kết': 7
+    };
+
+    const filtered = memberList.filter((m) => {
       const nameMatch = m.company_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                          m.representative_name.toLowerCase().includes(searchQuery.toLowerCase());
       const roleMatch = selectedRole === 'all' || m.association_role === selectedRole;
@@ -541,6 +552,16 @@ export default function MembersPage() {
       }
       
       return nameMatch && roleMatch && regionMatch;
+    });
+
+    // Sort by role priority first, then alphabetically by company name
+    return [...filtered].sort((a, b) => {
+      const pA = ROLE_PRIORITY[a.association_role] ?? 99;
+      const pB = ROLE_PRIORITY[b.association_role] ?? 99;
+      if (pA !== pB) {
+        return pA - pB;
+      }
+      return a.company_name.localeCompare(b.company_name, 'vi');
     });
   }, [searchQuery, selectedRole, selectedRegion, memberList]);
 
