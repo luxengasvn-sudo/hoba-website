@@ -109,10 +109,14 @@ export function NewsDetailPage({ id, slug }: { id?: string; slug?: string }) {
   const [recentNews, setRecentNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
 
   useEffect(() => {
-    async function loadArticle() {
+    let cancelled = false;
+
+    async function loadArticle(retryCount = 0) {
+      if (cancelled) return;
       setLoading(true);
       setError(null);
       const queryField = id ? 'id' : 'slug';
@@ -132,25 +136,40 @@ export function NewsDetailPage({ id, slug }: { id?: string; slug?: string }) {
         return;
       }
 
+      // Timeout wrapper cho mỗi query Supabase
+      const fetchWithTimeout = (promise: any, ms = 8000): Promise<any> => {
+        return Promise.race([
+          Promise.resolve(promise),
+          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase query timeout')), ms))
+        ]);
+      };
+
       try {
-        const { data, error: fetchErr } = await supabase
-          .from('news')
-          .select('*')
-          .eq(queryField, queryValue)
-          .single();
+        const { data, error: fetchErr } = await fetchWithTimeout(
+          supabase
+            .from('news')
+            .select('*')
+            .eq(queryField, queryValue)
+            .single()
+        );
+
+        if (cancelled) return;
 
         if (fetchErr) {
           if (fetchErr.code === 'PGRST116') {
-            // Target row not found, let's fallback to search by title slug from all published news
-            const { data: allNews, error: allErr } = await supabase
-              .from('news')
-              .select('*')
-              .eq('status', 'Published');
+            // Không tìm thấy bài viết theo slug/id, fallback tìm theo toSlug(title)
+            const { data: allNews, error: allErr } = await fetchWithTimeout(
+              supabase
+                .from('news')
+                .select('*')
+                .eq('status', 'Published')
+            );
 
+            if (cancelled) return;
             if (allErr) throw allErr;
 
             if (allNews && allNews.length > 0) {
-              const found = allNews.find(n => 
+              const found = allNews.find((n: any) => 
                 n.id === queryValue || 
                 (n.slug && n.slug === queryValue) || 
                 toSlug(n.title) === queryValue
@@ -174,9 +193,8 @@ export function NewsDetailPage({ id, slug }: { id?: string; slug?: string }) {
                   img: found.thumbnail_url || 'https://images.unsplash.com/photo-1542282088-fe8426682b8f'
                 });
 
-                // Load recent news excluding current found article
                 const recent = allNews
-                  .filter(n => n.id !== found.id)
+                  .filter((n: any) => n.id !== found.id)
                   .slice(0, 3)
                   .map((r: any) => {
                     let fd = r.publish_date;
@@ -199,7 +217,7 @@ export function NewsDetailPage({ id, slug }: { id?: string; slug?: string }) {
                 return;
               }
             }
-            // Truly not found in database
+            // Thực sự không tìm thấy trong DB
             setArticle(null);
             setLoading(false);
             return;
@@ -229,15 +247,17 @@ export function NewsDetailPage({ id, slug }: { id?: string; slug?: string }) {
           });
         }
 
-        const { data: recent, error: recentErr } = await supabase
-          .from('news')
-          .select('id, title, slug, description, category, publish_date, thumbnail_url')
-          .eq('status', 'Published')
-          .neq('id', currentId || '')
-          .order('publish_date', { ascending: false })
-          .limit(3);
+        const { data: recent, error: recentErr } = await fetchWithTimeout(
+          supabase
+            .from('news')
+            .select('id, title, slug, description, category, publish_date, thumbnail_url')
+            .eq('status', 'Published')
+            .neq('id', currentId || '')
+            .order('publish_date', { ascending: false })
+            .limit(3)
+        );
 
-        if (!recentErr && recent) {
+        if (!cancelled && !recentErr && recent) {
           const formattedRecent = recent.map((r: any) => {
             let formattedDate = r.publish_date;
             try {
@@ -257,15 +277,22 @@ export function NewsDetailPage({ id, slug }: { id?: string; slug?: string }) {
           setRecentNews(formattedRecent);
         }
       } catch (err) {
-        console.error('Lỗi tải bài viết từ Supabase:', err);
-        setError('connection_error');
+        console.error(`Lỗi tải bài viết từ Supabase (lần thử ${retryCount + 1}):`, err);
+        // Tự động retry tối đa 2 lần
+        if (retryCount < 2 && !cancelled) {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          return loadArticle(retryCount + 1);
+        }
+        if (!cancelled) setError('connection_error');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
     loadArticle();
-  }, [id, slug]);
+
+    return () => { cancelled = true; };
+  }, [id, slug, retryKey]);
 
   if (loading) {
     return (
@@ -289,8 +316,8 @@ export function NewsDetailPage({ id, slug }: { id?: string; slug?: string }) {
           </p>
           <div className="flex flex-col gap-3">
             <button
-              onClick={() => { setError(null); setLoading(true); setTimeout(() => window.location.reload(), 100); }}
-              className="w-full py-3 bg-primary text-white font-bold text-xs rounded-lg hover:bg-secondary transition-all flex items-center justify-center gap-2"
+              onClick={() => { setError(null); setLoading(true); setRetryKey(prev => prev + 1); }}
+              className="w-full py-3 bg-primary text-white font-bold text-xs rounded-lg hover:bg-secondary transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <span className="material-symbols-outlined text-base">refresh</span>
               Thử lại
@@ -454,6 +481,8 @@ function NewsListPage() {
   const [newsList, setNewsList] = useState<NewsItem[]>([]);
   const [sidebarDocs, setSidebarDocs] = useState<SidebarDoc[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [fetchKey, setFetchKey] = useState(0); // Dùng để buộc re-fetch khi cần
 
   const categories = ['Tất cả', 'Hoạt động hiệp hội', 'Bản tin chuyên ngành', 'Kỹ thuật - An toàn'];
 
@@ -463,8 +492,13 @@ function NewsListPage() {
   ];
 
   useEffect(() => {
-    async function loadNewsData() {
+    let cancelled = false;
+
+    async function loadNewsData(retryCount = 0) {
+      if (cancelled) return;
       setLoading(true);
+      setError(null);
+
       if (!supabase) {
         setNewsList(defaultNews);
         setSidebarDocs(defaultSidebarDocs);
@@ -473,12 +507,23 @@ function NewsListPage() {
       }
 
       try {
-        const { data: newsData, error: newsErr } = await supabase
-          .from('news')
-          .select('*')
-          .eq('status', 'Published')
-          .order('publish_date', { ascending: false });
+        // Thêm timeout 8 giây để tránh treo vô hạn
+        const fetchWithTimeout = (promise: any, ms = 8000): Promise<any> => {
+          return Promise.race([
+            Promise.resolve(promise),
+            new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase query timeout')), ms))
+          ]);
+        };
 
+        const { data: newsData, error: newsErr } = await fetchWithTimeout(
+          supabase
+            .from('news')
+            .select('*')
+            .eq('status', 'Published')
+            .order('publish_date', { ascending: false })
+        );
+
+        if (cancelled) return;
         if (newsErr) throw newsErr;
 
         if (newsData && newsData.length > 0) {
@@ -505,38 +550,54 @@ function NewsListPage() {
           setNewsList([]);
         }
 
-        const { data: docsData } = await supabase
-          .from('documents')
-          .select('title, publish_date')
-          .order('publish_date', { ascending: false })
-          .limit(3);
+        // Tải văn bản nổi bật (không cần retry riêng)
+        try {
+          const { data: docsData } = await fetchWithTimeout(
+            supabase
+              .from('documents')
+              .select('title, publish_date')
+              .order('publish_date', { ascending: false })
+              .limit(3)
+          );
 
-        if (docsData && docsData.length > 0) {
-          const side: SidebarDoc[] = docsData.map((d: any) => {
-            let formattedDate = d.publish_date;
-            try {
-              const dt = new Date(d.publish_date);
-              formattedDate = `${dt.getDate()}/${dt.getMonth() + 1}/${dt.getFullYear()}`;
-            } catch (_) {}
-            return {
-              title: d.title,
-              date: formattedDate
-            };
-          });
-          setSidebarDocs(side);
-        } else {
-          setSidebarDocs(defaultSidebarDocs);
+          if (!cancelled && docsData && docsData.length > 0) {
+            const side: SidebarDoc[] = docsData.map((d: any) => {
+              let formattedDate = d.publish_date;
+              try {
+                const dt = new Date(d.publish_date);
+                formattedDate = `${dt.getDate()}/${dt.getMonth() + 1}/${dt.getFullYear()}`;
+              } catch (_) {}
+              return {
+                title: d.title,
+                date: formattedDate
+              };
+            });
+            setSidebarDocs(side);
+          } else if (!cancelled) {
+            setSidebarDocs(defaultSidebarDocs);
+          }
+        } catch (docErr) {
+          if (!cancelled) setSidebarDocs(defaultSidebarDocs);
         }
       } catch (err) {
-        console.error('Lỗi tải tin tức từ Supabase, chuyển sang fallback:', err);
-        setNewsList(defaultNews);
-        setSidebarDocs(defaultSidebarDocs);
+        console.error(`Lỗi tải tin tức từ Supabase (lần thử ${retryCount + 1}):`, err);
+        // Tự động retry tối đa 2 lần, mỗi lần cách 1.5 giây
+        if (retryCount < 2 && !cancelled) {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          return loadNewsData(retryCount + 1);
+        }
+        if (!cancelled) {
+          setError('connection_error');
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
+
     loadNewsData();
-  }, []);
+
+    return () => { cancelled = true; };
+  }, [fetchKey]);
 
   const filteredNews = newsList.filter((item) => {
     return selectedCategory === 'Tất cả' || item.category === selectedCategory;
@@ -567,7 +628,7 @@ function NewsListPage() {
           <p className="text-sm opacity-80">Cập nhật xu hướng thị trường, an toàn kỹ thuật và hoạt động của hiệp hội HOBA</p>
         </div>
       </section>
-
+ 
       <section className="bg-white border-b border-outline-variant/30 py-4">
         <div className="max-w-container-max mx-auto px-margin-mobile md:px-gutter flex gap-3 overflow-x-auto no-scrollbar">
           {categories.map((cat, idx) => (
@@ -585,11 +646,28 @@ function NewsListPage() {
           ))}
         </div>
       </section>
-
+ 
       <section className="py-12 bg-surface">
         <div className="max-w-container-max mx-auto px-margin-mobile md:px-gutter">
           {loading ? (
             <div className="p-12 text-center text-xs text-on-surface-variant font-medium">Đang tải tin tức...</div>
+          ) : error === 'connection_error' ? (
+            <div className="py-16 flex items-center justify-center min-h-[40vh]">
+              <div className="text-center space-y-6 max-w-sm px-margin-mobile">
+                <span className="material-symbols-outlined text-6xl text-orange-400">wifi_off</span>
+                <h2 className="text-xl font-black text-primary">Lỗi kết nối máy chủ</h2>
+                <p className="text-xs text-on-surface-variant leading-relaxed">
+                  Không thể kết nối tới máy chủ để tải danh sách tin tức. Vui lòng kiểm tra kết nối mạng của bạn và thử lại.
+                </p>
+                <button
+                  onClick={() => { setError(null); setLoading(true); setFetchKey(prev => prev + 1); }}
+                  className="w-full py-3 bg-primary text-white font-bold text-xs rounded-lg hover:bg-secondary transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-base">refresh</span>
+                  Thử lại
+                </button>
+              </div>
+            </div>
           ) : (
             <div className="grid lg:grid-cols-12 gap-8 lg:gap-12">
               <div className="lg:col-span-8 space-y-8">

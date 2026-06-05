@@ -138,23 +138,46 @@ export default function HomePage() {
 
   useEffect(() => {
     async function loadHomeData() {
-      // 1. Fetch active members first so we can map them
+      // Helper to fetch with timeout and retry
+      async function fetchWithRetry(queryFn: () => any, label: string, retryCount = 0): Promise<any> {
+        const ms = 8000;
+        try {
+          return await Promise.race([
+            Promise.resolve(queryFn()),
+            new Promise<any>((_, reject) => setTimeout(() => reject(new Error(`Timeout fetching ${label}`)), ms))
+          ]);
+        } catch (err) {
+          console.warn(`Lỗi khi tải ${label} (lần thử ${retryCount + 1}):`, err);
+          if (retryCount < 2) {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            return fetchWithRetry(queryFn, label, retryCount + 1);
+          }
+          throw err;
+        }
+      }
+
+      // 1. Fetch active members first (or load from localStorage as fallback)
       let resolvedMembers: any[] = [];
       if (supabase) {
         try {
-          const { data: membersDb } = await supabase
-            .from('members')
-            .select('*')
-            .eq('status', 'Active');
+          const { data: membersDb, error } = await fetchWithRetry(() => 
+            supabase!.from('members').select('*').eq('status', 'Active'),
+            'members'
+          );
+          if (error) throw error;
           if (membersDb && membersDb.length > 0) {
-            resolvedMembers = membersDb.map(d => ({
+            resolvedMembers = membersDb.map((d: any) => ({
               id: d.id,
               name: d.company_name,
               logo: d.logo_url || d.license_file_url || 'https://lh3.googleusercontent.com/aida-public/AB6AXuBwWtf74gYhtlAq1IS1hNQ5pLt7PUyB5KUTbLhgRYv6HnE6oV_u_57wH3tzf7Gu632sw0dDOEGwPcVE9yeyW9nsoSKIYu6zhAnbBNLs_DAMN586bdG_Go0iluqSQSqfzXCkhA6V7FX6c26NfP5RxfXr_v80Y2xIdgeLNu-T-w8aqpnVxVdfLNKXLMrB1VRrMgB_l_1ovROIijGMRTcnJSxHCl2NBnEkiom8SJaaYm29JQdL9cUuZ6FLXiVcFjMeMtcUCUUGAtXcCeg'
             }));
           }
-        } catch (e) {}
-      } else {
+        } catch (e) {
+          console.error('Failed to load members from Supabase, checking localStorage:', e);
+        }
+      }
+      
+      if (resolvedMembers.length === 0) {
         const savedMembers = localStorage.getItem('hoba_website_members');
         if (savedMembers) {
           try {
@@ -174,7 +197,7 @@ export default function HomePage() {
         resolvedMembers = mockActiveMembers;
       }
 
-      // Fetch featured members from the dedicated configuration first
+      // Fetch featured members from the dedicated configuration
       let loadedFeaturedMembers: any[] = [];
       if (!supabase) {
         const savedFeatured = localStorage.getItem('hoba_website_config_featured_members');
@@ -183,17 +206,6 @@ export default function HomePage() {
             loadedFeaturedMembers = JSON.parse(savedFeatured);
           } catch (_) {}
         }
-      } else {
-        try {
-          const { data: featuredData } = await supabase
-            .from('website_config')
-            .select('value')
-            .eq('key', 'featured_members')
-            .single();
-          if (featuredData?.value && Array.isArray(featuredData.value)) {
-            loadedFeaturedMembers = featuredData.value;
-          }
-        } catch (_) {}
       }
 
       if (!supabase) {
@@ -240,122 +252,155 @@ export default function HomePage() {
         }
         return;
       }
-      try {
-        // Fetch homepage config
-        const { data: homeConfig } = await supabase
-          .from('website_config')
-          .select('value')
-          .eq('key', 'homepage')
-          .single();
 
-        let val: any = null;
-        if (homeConfig?.value) {
-          val = homeConfig.value;
-          if (val.headline) setHeadline(val.headline);
-          if (val.subtext) setSubtext(val.subtext);
-          if (val.features) setFeatures(val.features);
-          if (val.sections) setSections(val.sections);
-          if (val.heroImage) setHeroImage(val.heroImage);
-          if (val.stats) setStats(val.stats);
-          if (val.coreServices) setCoreServices(val.coreServices);
-          if (val.aboutTitle) setAboutTitle(val.aboutTitle);
-          if (val.aboutDesc) setAboutDesc(val.aboutDesc);
-          if (val.aboutImage) setAboutImage(val.aboutImage);
-        }
-
-        if (loadedFeaturedMembers && loadedFeaturedMembers.length > 0) {
-          setFeaturedMembers(loadedFeaturedMembers);
-        } else if (val && val.featuredMembers && Array.isArray(val.featuredMembers)) {
-          setFeaturedMembers(val.featuredMembers);
-        } else if (val && val.featuredMemberIds && Array.isArray(val.featuredMemberIds)) {
-          const sorted = val.featuredMemberIds.map((id: string) => {
-            return resolvedMembers.find((m: any) => m.id === id);
-          }).filter(Boolean);
-          if (sorted.length > 0) {
-            setFeaturedMembers(sorted);
-          } else {
-            setFeaturedMembers(resolvedMembers.slice(0, 6));
+      // If Supabase is present, run all subsequent queries concurrently
+      let val: any = null;
+      const tasks = [
+        (async () => {
+          try {
+            const { data: featuredData, error } = await fetchWithRetry(() =>
+              supabase!.from('website_config').select('value').eq('key', 'featured_members').single(),
+              'featured_members'
+            );
+            if (error) throw error;
+            if (featuredData?.value && Array.isArray(featuredData.value)) {
+              loadedFeaturedMembers = featuredData.value;
+            }
+          } catch (e) {
+            console.error('Failed to load featured members config from Supabase:', e);
           }
+        })(),
+
+        (async () => {
+          try {
+            const { data: homeConfig, error } = await fetchWithRetry(() =>
+              supabase!.from('website_config').select('value').eq('key', 'homepage').single(),
+              'homepage'
+            );
+            if (error) throw error;
+            if (homeConfig?.value) {
+              val = homeConfig.value;
+              if (val.headline) setHeadline(val.headline);
+              if (val.subtext) setSubtext(val.subtext);
+              if (val.features) setFeatures(val.features);
+              if (val.sections) setSections(val.sections);
+              if (val.heroImage) setHeroImage(val.heroImage);
+              if (val.stats) setStats(val.stats);
+              if (val.coreServices) setCoreServices(val.coreServices);
+              if (val.aboutTitle) setAboutTitle(val.aboutTitle);
+              if (val.aboutDesc) setAboutDesc(val.aboutDesc);
+              if (val.aboutImage) setAboutImage(val.aboutImage);
+            }
+          } catch (e) {
+            console.error('Failed to load homepage config from Supabase:', e);
+          }
+        })(),
+
+        (async () => {
+          try {
+            const { data: eventsConfig, error } = await fetchWithRetry(() =>
+              supabase!.from('website_config').select('value').eq('key', 'events').single(),
+              'events'
+            );
+            if (error) throw error;
+            if (eventsConfig?.value && Array.isArray(eventsConfig.value)) {
+              setLiveEvents(eventsConfig.value);
+            }
+          } catch (e) {
+            console.error('Failed to load events config from Supabase:', e);
+          }
+        })(),
+
+        (async () => {
+          try {
+            const { data: newsData, error } = await fetchWithRetry(() =>
+              supabase!.from('news').select('*').eq('status', 'Published').order('publish_date', { ascending: false }).limit(3),
+              'news'
+            );
+            if (error) throw error;
+            if (newsData && newsData.length > 0) {
+              const mappedArticles = newsData.map((d: any, idx: number) => {
+                let formattedDate = d.publish_date;
+                try {
+                  const dt = new Date(d.publish_date);
+                  formattedDate = `${dt.getDate()} Tháng ${dt.getMonth() + 1}, ${dt.getFullYear()}`;
+                } catch (_) {}
+
+                return {
+                  id: d.id,
+                  title: d.title,
+                  desc: d.description || '',
+                  date: formattedDate,
+                  badge: idx === 0 ? 'Tiêu điểm' : undefined,
+                  img: d.thumbnail_url || 'https://images.unsplash.com/photo-1542282088-fe8426682b8f',
+                  slug: d.slug
+                };
+              });
+              setLiveArticles(mappedArticles);
+            }
+          } catch (e) {
+            console.error('Failed to load news from Supabase:', e);
+          }
+        })(),
+
+        (async () => {
+          try {
+            const { data: docsData, error } = await fetchWithRetry(() =>
+              supabase!.from('documents').select('*').order('publish_date', { ascending: false }).limit(3),
+              'documents'
+            );
+            if (error) throw error;
+            if (docsData && docsData.length > 0) {
+              const mappedDocs = docsData.map((d: any) => {
+                let formattedDate = d.publish_date;
+                try {
+                  const dt = new Date(d.publish_date);
+                  formattedDate = `${dt.getDate()}/${dt.getMonth() + 1}/${dt.getFullYear()}`;
+                } catch (_) {}
+
+                let type = 'pdf';
+                let color = 'text-secondary';
+                if (d.category === 'Thông tư') {
+                  type = 'info';
+                  color = 'text-green-600';
+                } else if (d.category === 'Quyết định') {
+                  type = 'download';
+                  color = 'text-orange-500';
+                }
+
+                return {
+                  title: d.title,
+                  date: formattedDate,
+                  type: type,
+                  color: color
+                };
+              });
+              setLiveDocs(mappedDocs);
+            }
+          } catch (e) {
+            console.error('Failed to load documents from Supabase:', e);
+          }
+        })()
+      ];
+
+      await Promise.all(tasks);
+
+      // Resolve featured members representation based on resolves
+      if (loadedFeaturedMembers && loadedFeaturedMembers.length > 0) {
+        setFeaturedMembers(loadedFeaturedMembers);
+      } else if (val && val.featuredMembers && Array.isArray(val.featuredMembers)) {
+        setFeaturedMembers(val.featuredMembers);
+      } else if (val && val.featuredMemberIds && Array.isArray(val.featuredMemberIds)) {
+        const sorted = val.featuredMemberIds.map((id: string) => {
+          return resolvedMembers.find((m: any) => m.id === id);
+        }).filter(Boolean);
+        if (sorted.length > 0) {
+          setFeaturedMembers(sorted);
         } else {
           setFeaturedMembers(resolvedMembers.slice(0, 6));
         }
-
-        // Fetch events config
-        const { data: eventsConfig } = await supabase
-          .from('website_config')
-          .select('value')
-          .eq('key', 'events')
-          .single();
-
-        if (eventsConfig?.value && Array.isArray(eventsConfig.value)) {
-          setLiveEvents(eventsConfig.value);
-        }
-
-        // Fetch 3 latest news
-        const { data: newsData } = await supabase
-          .from('news')
-          .select('*')
-          .eq('status', 'Published')
-          .order('publish_date', { ascending: false })
-          .limit(3);
-
-        if (newsData && newsData.length > 0) {
-          const mappedArticles = newsData.map((d: any, idx: number) => {
-            let formattedDate = d.publish_date;
-            try {
-              const dt = new Date(d.publish_date);
-              formattedDate = `${dt.getDate()} Tháng ${dt.getMonth() + 1}, ${dt.getFullYear()}`;
-            } catch (_) {}
-
-            return {
-              id: d.id,
-              title: d.title,
-              desc: d.description || '',
-              date: formattedDate,
-              badge: idx === 0 ? 'Tiêu điểm' : undefined,
-              img: d.thumbnail_url || 'https://images.unsplash.com/photo-1542282088-fe8426682b8f',
-              slug: d.slug
-            };
-          });
-          setLiveArticles(mappedArticles);
-        }
-
-        // Fetch 3 latest documents
-        const { data: docsData } = await supabase
-          .from('documents')
-          .select('*')
-          .order('publish_date', { ascending: false })
-          .limit(3);
-
-        if (docsData && docsData.length > 0) {
-          const mappedDocs = docsData.map((d: any) => {
-            let formattedDate = d.publish_date;
-            try {
-              const dt = new Date(d.publish_date);
-              formattedDate = `${dt.getDate()}/${dt.getMonth() + 1}/${dt.getFullYear()}`;
-            } catch (_) {}
-
-            let type = 'pdf';
-            let color = 'text-secondary';
-            if (d.category === 'Thông tư') {
-              type = 'info';
-              color = 'text-green-600';
-            } else if (d.category === 'Quyết định') {
-              type = 'download';
-              color = 'text-orange-500';
-            }
-
-            return {
-              title: d.title,
-              date: formattedDate,
-              type: type,
-              color: color
-            };
-          });
-          setLiveDocs(mappedDocs);
-        }
-      } catch (err) {
-        console.error('Lỗi khi tải dữ liệu trang chủ từ Supabase:', err);
+      } else {
+        setFeaturedMembers(resolvedMembers.slice(0, 6));
       }
     }
     loadHomeData();
