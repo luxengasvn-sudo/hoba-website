@@ -124,8 +124,7 @@ export default function Sidebar() {
     ]),
     { label: 'Quản lý Sự kiện', path: '/admin/su-kien/', icon: 'event' },
     ...(userRole === 'super_admin' ? [
-      { label: 'Quản lý Thư viện', path: '/admin/thu-vien/', icon: 'photo_library' },
-      { label: 'Quản lý Footer', path: '/admin/footer/', icon: 'bottom_navigation' }
+      { label: 'Quản lý Thư viện', path: '/admin/thu-vien/', icon: 'photo_library' }
     ] : []),
     { label: 'Quản lý Liên hệ', path: '/admin/lien-he/', icon: 'contact_mail' },
   ];
