@@ -28,6 +28,15 @@ const formatDate = (date: any): string => {
   }
 };
 
+const abbreviateRole = (role: string): string => {
+  if (!role) return '';
+  return role
+    .replace(/Ban Chấp hành/g, 'BCH')
+    .replace(/Ban Thường vụ/g, 'BTV')
+    .replace(/Ban Kiểm tra/g, 'BKT')
+    .replace(/Ban Thường trực/g, 'BTT');
+};
+
 interface LeaderMember {
   name: string;
   role: string;
@@ -608,7 +617,8 @@ export default function CommitteeView({
               {config.memberSectionTitle || getDefaultTitle('member', type)}
             </h2>
             
-            <div className="bg-white border border-outline-variant/30 rounded-xl shadow-sm overflow-hidden">
+            {/* Desktop View Table */}
+            <div className="hidden md:block bg-white border border-outline-variant/30 rounded-xl shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
@@ -645,6 +655,45 @@ export default function CommitteeView({
                   </tbody>
                 </table>
               </div>
+            </div>
+
+            {/* Mobile View List */}
+            <div className="block md:hidden bg-white border border-outline-variant/30 rounded-xl shadow-sm overflow-hidden divide-y divide-outline-variant/20">
+              {effectiveMembers.map((member, idx) => (
+                <div 
+                  key={idx} 
+                  className="flex items-center gap-3 p-4 hover:bg-surface-container-low transition-colors duration-200 odd:bg-white even:bg-surface-container-lowest"
+                >
+                  {/* STT Badge */}
+                  <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0 font-sans">
+                    {idx + 1}
+                  </div>
+                  {/* Member Details */}
+                  <div className="flex-grow min-w-0 text-left space-y-1">
+                    {/* Name (1 row, truncate) */}
+                    <div className="font-extrabold text-primary text-sm truncate" title={member.name}>
+                      {member.name}
+                    </div>
+                    {/* Role (1 row, abbreviated, truncate) */}
+                    <div className="font-bold text-secondary text-xs truncate" title={member.role || 'Ủy viên'}>
+                      {abbreviateRole(member.role || 'Ủy viên')}
+                    </div>
+                    {/* Company (1 row, truncate) */}
+                    <div className="font-semibold text-on-surface text-xs truncate" title={member.company}>
+                      {member.memberId ? (
+                        <button
+                          onClick={() => handleShowMemberDetail(member.memberId)}
+                          className="text-secondary hover:text-primary hover:underline font-semibold text-left truncate block w-full"
+                        >
+                          {member.company}
+                        </button>
+                      ) : (
+                        member.company
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
