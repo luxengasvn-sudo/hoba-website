@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect, Fragment, useMemo } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import defaultHomePage from '@/lib/defaultHomePage.json';
@@ -67,6 +67,24 @@ export default function HomeClientPage({
   const [sections, setSections] = useState(initialData.sections || defaultHomePage.sections);
 
   const [liveEvents, setLiveEvents] = useState<any[]>(initialData.liveEvents || []);
+
+  const activeEvent = useMemo(() => {
+    const defaultPriorityEvent = {
+      title: 'Diễn đàn an toàn LPG 2026',
+      description: 'Sự kiện lớn nhất năm thu hút hơn 300 chuyên gia và lãnh đạo doanh nghiệp.',
+      image_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCKsH5RYaymmBXwBYB4zyRhQroDyJz9EeXqIpkdYzvcWQakwnGtExjxW1twLP6-Wof89mA1uyf_iwqE4-MMSBVbWDe4pWEGUKOFXvOUmM8lu9XOVAKPo6JZh2p-o-AUk9E-lzTvSQ1RPPxPRbpUiLaq9mUcLLg52RWVcFO2WJVXjtMQg9EGzYOa_NfWzhWv1PTapeEkyt-eTpGT-gJQUJxoZm16sPHodja2eQ_NxuUYjnivworCpTrWW3R0rj_VrxjZko7l4VwBp_4',
+      isUpcoming: true,
+      slug: ''
+    };
+    if (!liveEvents || liveEvents.length === 0) return defaultPriorityEvent;
+    const found = liveEvents.find((e: any) => e.isPriority) ||
+                  liveEvents.find((e: any) => e.isUpcoming) ||
+                  liveEvents[0];
+    return {
+      ...defaultPriorityEvent,
+      ...found
+    };
+  }, [liveEvents]);
 
   useEffect(() => {
     async function loadHomeData() {
@@ -717,16 +735,23 @@ export default function HomeClientPage({
             <div className="relative">
               <div className="aspect-[4/5] max-h-[500px] rounded-3xl overflow-hidden shadow-xl relative">
                 <img
-                  alt="Event Speaker"
+                  alt={activeEvent.title}
                   className="w-full h-full object-cover"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuCKsH5RYaymmBXwBYB4zyRhQroDyJz9EeXqIpkdYzvcWQakwnGtExjxW1twLP6-Wof89mA1uyf_iwqE4-MMSBVbWDe4pWEGUKOFXvOUmM8lu9XOVAKPo6JZh2p-o-AUk9E-lzTvSQ1RPPxPRbpUiLaq9mUcLLg52RWVcFO2WJVXjtMQg9EGzYOa_NfWzhWv1PTapeEkyt-eTpGT-gJQUJxoZm16sPHodja2eQ_NxuUYjnivworCpTrWW3R0rj_VrxjZko7l4VwBp_4"
+                  src={activeEvent.image_url}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-primary/80 via-transparent to-transparent"></div>
                 <div className="absolute bottom-6 left-6 right-6 p-6 glass-card rounded-xl border-white/10">
-                  <span className="inline-block bg-secondary text-white text-[9px] font-bold uppercase px-2 py-0.5 rounded-full mb-2">Sắp diễn ra</span>
-                  <h4 className="text-lg font-bold mb-1">Diễn đàn an toàn LPG 2026</h4>
-                  <p className="text-xs text-white/70 mb-4 line-clamp-2">Sự kiện lớn nhất năm thu hút hơn 300 chuyên gia và lãnh đạo doanh nghiệp.</p>
-                  <button className="w-full py-2.5 bg-white text-primary font-bold text-xs rounded-lg hover:bg-secondary hover:text-white transition-all">Đăng ký ngay</button>
+                  <span className="inline-block bg-secondary text-white text-[9px] font-bold uppercase px-2 py-0.5 rounded-full mb-2">
+                    {activeEvent.isUpcoming ? 'Sắp diễn ra' : 'Sự kiện'}
+                  </span>
+                  <h4 className="text-lg font-bold mb-1">{activeEvent.title}</h4>
+                  <p className="text-xs text-white/70 mb-4 line-clamp-2">{activeEvent.description}</p>
+                  <Link
+                    href={activeEvent.slug ? `/su-kien/${activeEvent.slug}` : (activeEvent.id ? `/su-kien?id=${activeEvent.id}` : `/su-kien`)}
+                    className="block w-full py-2.5 bg-white text-primary font-bold text-xs rounded-lg hover:bg-secondary hover:text-white transition-all text-center"
+                  >
+                    Đăng ký ngay
+                  </Link>
                 </div>
               </div>
             </div>

@@ -14,6 +14,7 @@ interface EventAdmin {
   time: string;
   location: string;
   isUpcoming?: boolean;
+  isPriority?: boolean;
   description?: string;
   content?: string;
   image_url?: string;
@@ -35,6 +36,7 @@ export default function AdminEvents() {
   const [formTime, setFormTime] = useState('');
   const [formLocation, setFormLocation] = useState('');
   const [formIsUpcoming, setFormIsUpcoming] = useState(false);
+  const [formIsPriority, setFormIsPriority] = useState(false);
   const [formDesc, setFormDesc] = useState('');
   const [formContent, setFormContent] = useState('');
   const [formImageUrl, setFormImageUrl] = useState('https://images.unsplash.com/photo-1540575467063-178a50c2df87');
@@ -123,6 +125,7 @@ export default function AdminEvents() {
     setFormTime('08:00 - 12:00');
     setFormLocation('Hội trường');
     setFormIsUpcoming(true);
+    setFormIsPriority(false);
     setFormDesc('');
     setFormContent('');
     setFormImageUrl('https://images.unsplash.com/photo-1540575467063-178a50c2df87');
@@ -139,6 +142,7 @@ export default function AdminEvents() {
     setFormTime(e.time);
     setFormLocation(e.location);
     setFormIsUpcoming(!!e.isUpcoming);
+    setFormIsPriority(!!e.isPriority);
     setFormDesc(e.description || '');
     setFormContent(e.content || '');
     setFormImageUrl(e.image_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87');
@@ -202,7 +206,13 @@ export default function AdminEvents() {
     }
 
     const uniqueSlug = getUniqueEventSlug(formTitle, formSlug, events, editingEventId);
-    const updated = [...events];
+    let updated = [...events];
+
+    // If the new/edited event is marked as priority, unmark all other events
+    if (formIsPriority) {
+      updated = updated.map(item => ({ ...item, isPriority: false }));
+    }
+
     if (editingEventId) {
       const idx = updated.findIndex(item => item.id === editingEventId);
       if (idx !== -1) {
@@ -215,6 +225,7 @@ export default function AdminEvents() {
           time: formTime,
           location: formLocation,
           isUpcoming: formIsUpcoming,
+          isPriority: formIsPriority,
           description: formDesc,
           content: formContent,
           image_url: formImageUrl
@@ -230,6 +241,7 @@ export default function AdminEvents() {
         time: formTime,
         location: formLocation,
         isUpcoming: formIsUpcoming,
+        isPriority: formIsPriority,
         description: formDesc,
         content: formContent,
         image_url: formImageUrl
@@ -288,7 +300,14 @@ export default function AdminEvents() {
                           className="w-10 h-10 object-cover rounded-lg border border-outline-variant/50"
                         />
                       </td>
-                      <td className="p-3 font-bold text-primary max-w-xs truncate">{e.title}</td>
+                      <td className="p-3 font-bold text-primary max-w-xs truncate">
+                        <div className="flex items-center gap-1.5">
+                          {e.isPriority && (
+                            <span className="material-symbols-outlined text-amber-500 text-sm select-none" title="Ưu tiên hiển thị trang chủ">star</span>
+                          )}
+                          <span className="truncate">{e.title}</span>
+                        </div>
+                      </td>
                       <td className="p-3 text-center text-on-surface font-semibold">{e.day} {e.month}</td>
                       <td className="p-3 text-on-surface-variant">{e.time}</td>
                       <td className="p-3 text-on-surface-variant truncate max-w-[120px]" title={e.location}>{e.location}</td>
@@ -485,6 +504,20 @@ export default function AdminEvents() {
                   />
                   <label htmlFor="modal-upcoming-check" className="font-bold text-primary select-none cursor-pointer">
                     Sắp diễn ra? (Nếu bỏ chọn, sự kiện sẽ chuyển sang mục Đã diễn ra/Đã kết thúc)
+                  </label>
+                </div>
+
+                {/* Priority Status */}
+                <div className="flex items-center gap-2 p-2 bg-amber-50 rounded-lg md:col-span-2 border border-amber-200">
+                  <input
+                    id="modal-priority-check"
+                    type="checkbox"
+                    className="w-4 h-4 text-primary focus:ring-primary accent-amber-500 rounded cursor-pointer"
+                    checked={formIsPriority}
+                    onChange={(e) => setFormIsPriority(e.target.checked)}
+                  />
+                  <label htmlFor="modal-priority-check" className="font-bold text-amber-800 select-none cursor-pointer">
+                    Đánh dấu ưu tiên hiển thị nổi bật ở trang chủ? (Chỉ hiển thị tối đa 1 sự kiện ưu tiên ở cột bên phải)
                   </label>
                 </div>
 
