@@ -1,3 +1,4 @@
+import { createClient } from '@supabase/supabase-js';
 import { compressImage } from './imageCompressor';
 
 // Helper to get absolute API url on server-side, or relative on client-side
@@ -8,6 +9,22 @@ const getApiUrl = (endpoint: string) => {
   const port = process.env.PORT || '3000';
   return `http://127.0.0.1:${port}${endpoint}`;
 };
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+const isValidUrl = (url: string) => {
+  try {
+    new URL(url);
+    return true;
+  } catch (_) {
+    return false;
+  }
+};
+
+const rawSupabase = supabaseUrl && isValidUrl(supabaseUrl) && supabaseAnonKey
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
 
 class MockSupabaseBuilder {
   private table: string;
@@ -262,7 +279,36 @@ const mockStorage = {
   }
 };
 
+if (rawSupabase) {
+  const originalFrom = rawSupabase.storage.from.bind(rawSupabase.storage);
+  rawSupabase.storage.from = (id: string) => {
+    const fileApi = originalFrom(id);
+    const originalUpload = fileApi.upload.bind(fileApi);
+    fileApi.upload = async (path: string, file: any, options?: any) => {
+      try {
+        const finalFile = await compressIfNeeded(path, file);
+        return originalUpload(path, finalFile, options);
+      } catch (err) {
+        console.error('[Supabase Storage] Error compressing before upload, uploading raw instead:', err);
+        return originalUpload(path, file, options);
+      }
+    };
+
+    const originalUpdate = fileApi.update.bind(fileApi);
+    fileApi.update = async (path: string, file: any, options?: any) => {
+      try {
+        const finalFile = await compressIfNeeded(path, file);
+        return originalUpdate(path, finalFile, options);
+      } catch (err) {
+        console.error('[Supabase Storage] Error compressing before update, updating raw instead:', err);
+        return originalUpdate(path, file, options);
+      }
+    };
+    return fileApi;
+  };
+}
+
 export const supabase: any = {
   from: (table: string) => new MockSupabaseBuilder(table),
-  storage: mockStorage,
+  storage: rawSupabase ? rawSupabase.storage : mockStorage,
 };
