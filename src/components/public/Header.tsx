@@ -11,43 +11,48 @@ interface HeaderMenuItem {
   children?: HeaderMenuItem[];
 }
 
-export default function Header() {
+export default function Header({ initialConfig }: { initialConfig?: any }) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const pathname = usePathname();
   
-  const [navItems, setNavItems] = useState<HeaderMenuItem[]>([
-    { label: 'Trang chủ', path: '/', children: [] },
-    {
-      label: 'Giới thiệu',
-      path: '/gioi-thieu',
-      children: [
-        { label: 'Giới thiệu chung', path: '/gioi-thieu' },
-        { label: 'Ban Chấp hành', path: '/ban-chap-hanh' },
-        { label: 'Ban Thường vụ', path: '/ban-thuong-vu' },
-        { label: 'Ban Kiểm tra', path: '/ban-kiem-tra' }
-      ]
-    },
-    {
-      label: 'Hội viên',
-      path: '/hoi-vien',
-      children: [
-        { label: 'Danh sách Hội viên', path: '/hoi-vien' },
-        { label: 'Danh sách Chi hội', path: '/chi-hoi' },
-        { label: 'Đăng ký Hội viên', path: '/dang-ky' }
-      ]
-    },
-    { label: 'Tin tức', path: '/tin-tuc/', children: [] },
-    { label: 'Sự kiện', path: '/su-kien', children: [] },
-    { label: 'Văn bản', path: '/van-ban', children: [] },
-    { label: 'Liên hệ', path: '/lien-he', children: [] },
-  ]);
-  const [logoUrl, setLogoUrl] = useState('https://lh3.googleusercontent.com/aida-public/AB6AXuDGqQKdtsfpnEDKd7JAu8yQBX437NF9yre-G8AhC0L2jkhp6KVKASaL_r8TGZh_QRNtxoTKJXj2RXxkHdzbloP5qr9ddoI8OKoucsW0qAAsP4BTZGw_OuSxkWH_7yIFBmg6xnEcQ6TW4JHRFli25nYMjoLZ2HCRMhbnXTVG7sJKa0uboKFQS39PjtPXOEjGCHqrOCfHNMf3fKTvNlIsHiQw4bsKOCnLrOmA4gvrVMw8OI1QXoKnQvFoERk0EIu4ye4Mgt_9-lpAzjg');
-  const [logoTitle, setLogoTitle] = useState('HOBA LPG');
-  const [logoSubtitle, setLogoSubtitle] = useState('HCMC LPG Business Association');
-  const [contactEmail, setContactEmail] = useState('info@hobalpg.vn');
-  const [contactPhone, setContactPhone] = useState('028 3831 66710');
+  const [navItems, setNavItems] = useState<HeaderMenuItem[]>(() => {
+    if (initialConfig?.menuItems && Array.isArray(initialConfig.menuItems) && initialConfig.menuItems.length > 0) {
+      return initialConfig.menuItems;
+    }
+    return [
+      { label: 'Trang chủ', path: '/', children: [] },
+      {
+        label: 'Giới thiệu',
+        path: '/gioi-thieu',
+        children: [
+          { label: 'Giới thiệu chung', path: '/gioi-thieu' },
+          { label: 'Ban Chấp hành', path: '/ban-chap-hanh' },
+          { label: 'Ban Thường vụ', path: '/ban-thuong-vu' },
+          { label: 'Ban Kiểm tra', path: '/ban-kiem-tra' }
+        ]
+      },
+      {
+        label: 'Hội viên',
+        path: '/hoi-vien',
+        children: [
+          { label: 'Danh sách Hội viên', path: '/hoi-vien' },
+          { label: 'Danh sách Chi hội', path: '/chi-hoi' },
+          { label: 'Đăng ký Hội viên', path: '/dang-ky' }
+        ]
+      },
+      { label: 'Tin tức', path: '/tin-tuc/', children: [] },
+      { label: 'Sự kiện', path: '/su-kien', children: [] },
+      { label: 'Văn bản', path: '/van-ban', children: [] },
+      { label: 'Liên hệ', path: '/lien-he', children: [] },
+    ];
+  });
+  const [logoUrl, setLogoUrl] = useState(() => initialConfig?.logoUrl || 'https://lh3.googleusercontent.com/aida-public/AB6AXuDGqQKdtsfpnEDKd7JAu8yQBX437NF9yre-G8AhC0L2jkhp6KVKASaL_r8TGZh_QRNtxoTKJXj2RXxkHdzbloP5qr9ddoI8OKoucsW0qAAsP4BTZGw_OuSxkWH_7yIFBmg6xnEcQ6TW4JHRFli25nYMjoLZ2HCRMhbnXTVG7sJKa0uboKFQS39PjtPXOEjGCHqrOCfHNMf3fKTvNlIsHiQw4bsKOCnLrOmA4gvrVMw8OI1QXoKnQvFoERk0EIu4ye4Mgt_9-lpAzjg');
+  const [logoTitle, setLogoTitle] = useState(() => initialConfig?.logoTitle || 'HOBA LPG');
+  const [logoSubtitle, setLogoSubtitle] = useState(() => initialConfig?.logoSubtitle || 'HCMC LPG Business Association');
+  const [contactEmail, setContactEmail] = useState(() => initialConfig?.contactEmail || 'info@hobalpg.vn');
+  const [contactPhone, setContactPhone] = useState(() => initialConfig?.contactPhone || '028 3831 66710');
 
   // Safeguard: Redirect if the server served the public layout for an admin path
   useEffect(() => {
@@ -78,6 +83,7 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
+    if (initialConfig) return;
     async function loadMenu() {
       if (!supabase) {
         const saved = localStorage.getItem('hoba_website_config_general');

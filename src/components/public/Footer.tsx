@@ -35,23 +35,33 @@ const renderSocialIcon = (iconName: string) => {
   return <span className="material-symbols-outlined text-lg">{iconName}</span>;
 };
 
-export default function Footer() {
-  const [address, setAddress] = useState('Số 7, đường Nguyễn Trung Trực, KP. Bình Minh 1, Phường Dĩ An, TP Hồ Chí Minh, Việt Nam');
-  const [phone, setPhone] = useState('028 3831 66710');
-  const [email, setEmail] = useState('info@hobalpg.vn');
-  const [copyText, setCopyText] = useState('© 2026 HOBA - Hiệp hội Kinh doanh Khí hóa lỏng TP.HCM. All rights reserved.');
-  const [facebookUrl, setFacebookUrl] = useState('https://facebook.com/hobagroup');
-  const [footerDesc, setFooterDesc] = useState('Hiệp hội Kinh doanh Khí hóa lỏng TP.HCM - Nơi kết nối, bảo vệ và định hướng phát triển bền vững cho cộng đồng doanh nghiệp LPG phía Nam.');
-  const [logoUrl, setLogoUrl] = useState('https://lh3.googleusercontent.com/aida-public/AB6AXuDGqQKdtsfpnEDKd7JAu8yQBX437NF9yre-G8AhC0L2jkhp6KVKASaL_r8TGZh_QRNtxoTKJXj2RXxkHdzbloP5qr9ddoI8OKoucsW0qAAsP4BTZGw_OuSxkWH_7yIFBmg6xnEcQ6TW4JHRFli25nYMjoLZ2HCRMhbnXTVG7sJKa0uboKFQS39PjtPXOEjGCHqrOCfHNMf3fKTvNlIsHiQw4bsKOCnLrOmA4gvrVMw8OI1QXoKnQvFoERk0EIu4ye4Mgt_9-lpAzjg');
-  const [logoTitle, setLogoTitle] = useState('HOBA LPG');
-  const [logoSubtitle, setLogoSubtitle] = useState('HCMC LPG Business Association');
-  const [websiteUrl, setWebsiteUrl] = useState('https://hoba.vn');
-  const [termsPath, setTermsPath] = useState('/p/?slug=dieu-khoan');
-  const [privacyPath, setPrivacyPath] = useState('/p/?slug=chinh-sach');
-  const [socialLinks, setSocialLinks] = useState<{ icon: string; url: string }[]>([
-    { icon: 'facebook', url: 'https://facebook.com/hobagroup' },
-    { icon: 'mail', url: 'mailto:info@hobalpg.vn' }
-  ]);
+export default function Footer({ initialConfig }: { initialConfig?: any }) {
+  const [address, setAddress] = useState(() => initialConfig?.address || 'Số 7, đường Nguyễn Trung Trực, KP. Bình Minh 1, Phường Dĩ An, TP Hồ Chí Minh, Việt Nam');
+  const [phone, setPhone] = useState(() => initialConfig?.contactPhone || '028 3831 66710');
+  const [email, setEmail] = useState(() => initialConfig?.contactEmail || 'info@hobalpg.vn');
+  const [copyText, setCopyText] = useState(() => initialConfig?.copyText || '© 2026 HOBA - Hiệp hội Kinh doanh Khí hóa lỏng TP.HCM. All rights reserved.');
+  const [facebookUrl, setFacebookUrl] = useState(() => initialConfig?.facebookUrl || 'https://facebook.com/hobagroup');
+  const [footerDesc, setFooterDesc] = useState(() => initialConfig?.footerDesc || 'Hiệp hội Kinh doanh Khí hóa lỏng TP.HCM - Nơi kết nối, bảo vệ và định hướng phát triển bền vững cho cộng đồng doanh nghiệp LPG phía Nam.');
+  const [logoUrl, setLogoUrl] = useState(() => initialConfig?.logoUrl || 'https://lh3.googleusercontent.com/aida-public/AB6AXuDGqQKdtsfpnEDKd7JAu8yQBX437NF9yre-G8AhC0L2jkhp6KVKASaL_r8TGZh_QRNtxoTKJXj2RXxkHdzbloP5qr9ddoI8OKoucsW0qAAsP4BTZGw_OuSxkWH_7yIFBmg6xnEcQ6TW4JHRFli25nYMjoLZ2HCRMhbnXTVG7sJKa0uboKFQS39PjtPXOEjGCHqrOCfHNMf3fKTvNlIsHiQw4bsKOCnLrOmA4gvrVMw8OI1QXoKnQvFoERk0EIu4ye4Mgt_9-lpAzjg');
+  const [logoTitle, setLogoTitle] = useState(() => initialConfig?.logoTitle || 'HOBA LPG');
+  const [logoSubtitle, setLogoSubtitle] = useState(() => initialConfig?.logoSubtitle || 'HCMC LPG Business Association');
+  const [websiteUrl, setWebsiteUrl] = useState(() => initialConfig?.websiteUrl || 'https://hoba.vn');
+  const [termsPath, setTermsPath] = useState(() => initialConfig?.termsPath || '/p/?slug=dieu-khoan');
+  const [privacyPath, setPrivacyPath] = useState(() => initialConfig?.privacyPath || '/p/?slug=chinh-sach');
+  const [socialLinks, setSocialLinks] = useState<{ icon: string; url: string }[]>(() => {
+    if (initialConfig?.socialLinks && Array.isArray(initialConfig.socialLinks)) {
+      return initialConfig.socialLinks;
+    }
+    const list = [];
+    if (initialConfig?.facebookUrl) list.push({ icon: 'facebook', url: initialConfig.facebookUrl });
+    if (initialConfig?.websiteUrl) list.push({ icon: 'public', url: initialConfig.websiteUrl });
+    if (initialConfig?.contactEmail) list.push({ icon: 'mail', url: `mailto:${initialConfig.contactEmail}` });
+    if (list.length > 0) return list;
+    return [
+      { icon: 'facebook', url: 'https://facebook.com/hobagroup' },
+      { icon: 'mail', url: 'mailto:info@hobalpg.vn' }
+    ];
+  });
 
   const defaultQuickLinks = [
     { label: 'Giới thiệu hiệp hội', path: '/gioi-thieu' },
@@ -66,10 +76,21 @@ export default function Footer() {
     { label: 'Đăng ký Hội viên', path: '/dang-ky' }
   ];
 
-  const [quickLinks, setQuickLinks] = useState(defaultQuickLinks);
-  const [categories, setCategories] = useState(defaultCategories);
+  const [quickLinks, setQuickLinks] = useState<{ label: string; path: string }[]>(() => {
+    if (initialConfig?.quickLinks && Array.isArray(initialConfig.quickLinks)) {
+      return initialConfig.quickLinks;
+    }
+    return defaultQuickLinks;
+  });
+  const [categories, setCategories] = useState<{ label: string; path: string }[]>(() => {
+    if (initialConfig?.categories && Array.isArray(initialConfig.categories)) {
+      return initialConfig.categories;
+    }
+    return defaultCategories;
+  });
 
   useEffect(() => {
+    if (initialConfig) return;
     async function loadFooterData() {
       if (!supabase) {
         const saved = localStorage.getItem('hoba_website_config_general');
