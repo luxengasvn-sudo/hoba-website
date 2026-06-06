@@ -1,6 +1,19 @@
 import { executeDirectQuery } from '@/lib/db-direct';
 import HomeClientPage from './HomeClientPage';
 import defaultHomePage from '@/lib/defaultHomePage.json';
+import fs from 'fs';
+import path from 'path';
+
+function checkImageFallback(url: string, defaultUrl: string): string {
+  if (!url) return defaultUrl;
+  if (url.startsWith('/uploads/')) {
+    const localPath = path.join(process.cwd(), 'public', url);
+    if (!fs.existsSync(localPath)) {
+      return defaultUrl;
+    }
+  }
+  return url;
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -36,12 +49,12 @@ export default async function Page() {
     initialData.subtext = val.subtext || defaultHomePage.subtext;
     initialData.features = val.features || defaultHomePage.features;
     initialData.sections = val.sections || defaultHomePage.sections;
-    initialData.heroImage = val.heroImage || defaultHomePage.heroImage;
+    initialData.heroImage = checkImageFallback(val.heroImage, defaultHomePage.heroImage);
     initialData.stats = val.stats || defaultHomePage.stats;
     initialData.coreServices = val.coreServices || defaultHomePage.coreServices;
     initialData.aboutTitle = val.aboutTitle || defaultHomePage.aboutTitle;
     initialData.aboutDesc = val.aboutDesc || defaultHomePage.aboutDesc;
-    initialData.aboutImage = val.aboutImage || defaultHomePage.aboutImage;
+    initialData.aboutImage = checkImageFallback(val.aboutImage, defaultHomePage.aboutImage);
 
     // 3. Fetch featured members configuration
     let loadedFeaturedMembers: any[] = [];
@@ -100,7 +113,7 @@ export default async function Page() {
           desc: d.description || '',
           date: formattedDate,
           badge: idx === 0 ? 'Tiêu điểm' : undefined,
-          img: d.thumbnail_url || 'https://images.unsplash.com/photo-1542282088-fe8426682b8f',
+          img: checkImageFallback(d.thumbnail_url, 'https://images.unsplash.com/photo-1542282088-fe8426682b8f'),
           slug: d.slug
         };
       });
