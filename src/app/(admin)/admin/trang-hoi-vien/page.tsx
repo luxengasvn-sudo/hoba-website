@@ -300,15 +300,15 @@ export default function AdminTrangHoiVien() {
     if (supabase) {
       try {
         const { data: chapData, error: chapErr } = await supabase.from('chapters').select('*');
-        if (!chapErr && chapData) {
-          setChapters(chapData);
+        if (!chapErr && Array.isArray(chapData)) {
+          setChapters(chapData.filter(Boolean));
         }
         const { data: leadData, error: leadErr } = await supabase
           .from('chapter_leadership')
           .select('*')
           .order('order_index', { ascending: true });
-        if (!leadErr && leadData) {
-          setLeaders(leadData);
+        if (!leadErr && Array.isArray(leadData)) {
+          setLeaders(leadData.filter(Boolean));
         }
       } catch (e) {
         console.error('Lỗi load chapters:', e);
@@ -316,11 +316,21 @@ export default function AdminTrangHoiVien() {
     } else {
       const savedChaps = localStorage.getItem('hoba_chapters_list');
       if (savedChaps) {
-        try { setChapters(JSON.parse(savedChaps)); } catch (e) {}
+        try {
+          const parsed = JSON.parse(savedChaps);
+          if (Array.isArray(parsed)) {
+            setChapters(parsed.filter(Boolean));
+          }
+        } catch (e) {}
       }
       const savedLeads = localStorage.getItem('hoba_chapter_leaders_list');
       if (savedLeads) {
-        try { setLeaders(JSON.parse(savedLeads)); } catch (e) {}
+        try {
+          const parsed = JSON.parse(savedLeads);
+          if (Array.isArray(parsed)) {
+            setLeaders(parsed.filter(Boolean));
+          }
+        } catch (e) {}
       }
     }
   };
@@ -546,25 +556,27 @@ export default function AdminTrangHoiVien() {
   };
 
   const handleOpenEditChapter = (c: ChapterAdmin) => {
+    if (!c) return;
     setIsNewChapter(false);
     setEditingChapter(c);
-    setChName(c.name);
-    setChRegion(c.region);
-    setChLocations(c.locations);
-    setChSlogan(c.slogan);
-    setChDesc(c.description);
-    setChImage(c.image_url);
-    setChMission(c.mission_text);
-    setChMissionIcon(c.mission_icon);
-    setChVision(c.vision_text);
-    setChVisionIcon(c.vision_icon);
+    setChName(c.name || '');
+    setChRegion(c.region || 'Miền Bắc');
+    setChLocations(c.locations || '');
+    setChSlogan(c.slogan || '');
+    setChDesc(c.description || '');
+    setChImage(c.image_url || '');
+    setChMission(c.mission_text || '');
+    setChMissionIcon(c.mission_icon || 'rocket_launch');
+    setChVision(c.vision_text || '');
+    setChVisionIcon(c.vision_icon || 'visibility');
 
-    const filteredLeads = leaders.filter(l => l.chapter_id === c.id);
+    const filteredLeads = leaders.filter(l => l && l.chapter_id === c.id);
     setChapterLeaders(filteredLeads);
     setIsChapterModalOpen(true);
   };
 
   const handleDeleteChapter = async (chapId: string) => {
+    if (!chapId) return;
     if (!confirm('Bạn có chắc chắn muốn xóa chi hội này và toàn bộ ban lãnh đạo trực thuộc?')) return;
     if (supabase) {
       try {
@@ -575,8 +587,8 @@ export default function AdminTrangHoiVien() {
         return;
       }
     }
-    const updatedChaps = chapters.filter(c => c.id !== chapId);
-    const updatedLeads = leaders.filter(l => l.chapter_id !== chapId);
+    const updatedChaps = chapters.filter(c => c && c.id !== chapId);
+    const updatedLeads = leaders.filter(l => l && l.chapter_id !== chapId);
     setChapters(updatedChaps);
     setLeaders(updatedLeads);
     if (!supabase) {
@@ -594,7 +606,7 @@ export default function AdminTrangHoiVien() {
     }
 
     setLoading(true);
-    const chapterId = isNewChapter ? (supabase ? undefined : `c-${Date.now()}`) : editingChapter!.id;
+    const chapterId = isNewChapter ? (supabase ? undefined : `c-${Date.now()}`) : editingChapter?.id;
     const payload = {
       name: chName,
       region: chRegion,
@@ -633,21 +645,27 @@ export default function AdminTrangHoiVien() {
       };
     }
 
-    let nextChaps = [...chapters];
+    if (!savedChap) {
+      alert('Không nhận được thông tin phản hồi từ máy chủ.');
+      setLoading(false);
+      return;
+    }
+
+    let nextChaps = [...chapters].filter(Boolean);
     if (isNewChapter) {
       nextChaps.push(savedChap);
     } else {
-      nextChaps = nextChaps.map(c => c.id === savedChap.id ? savedChap : c);
+      nextChaps = nextChaps.map(c => c && c.id === savedChap.id ? savedChap : c);
     }
     setChapters(nextChaps);
 
     // Save Chapter Leadership
-    let nextLeaders = leaders.filter(l => l.chapter_id !== savedChap.id);
+    let nextLeaders = leaders.filter(l => l && l.chapter_id !== savedChap.id);
     if (supabase) {
       try {
         await supabase.from('chapter_leadership').delete().eq('chapter_id', savedChap.id);
         if (chapterLeaders.length > 0) {
-          const dbLeaders = chapterLeaders.map(cl => ({
+          const dbLeaders = chapterLeaders.filter(Boolean).map(cl => ({
             chapter_id: savedChap.id,
             name: cl.name,
             position: cl.position,
@@ -657,14 +675,14 @@ export default function AdminTrangHoiVien() {
           const { data: insertedL, error: leadErr } = await supabase.from('chapter_leadership').insert(dbLeaders).select();
           if (leadErr) throw leadErr;
           if (insertedL) {
-            nextLeaders = [...nextLeaders, ...insertedL];
+            nextLeaders = [...nextLeaders, ...insertedL.filter(Boolean)];
           }
         }
       } catch (err) {
         alert('Lỗi lưu ban lãnh đạo: ' + (err as Error).message);
       }
     } else {
-      const localLeaders = chapterLeaders.map((cl, i) => ({
+      const localLeaders = chapterLeaders.filter(Boolean).map((cl, i) => ({
         id: cl.id.startsWith('temp-') ? `l-${savedChap.id}-${i}-${Date.now()}` : cl.id,
         chapter_id: savedChap.id,
         name: cl.name,
@@ -1272,8 +1290,8 @@ export default function AdminTrangHoiVien() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {chapters.map((chap) => {
-              const chapterLeadersCount = leaders.filter(l => l.chapter_id === chap.id).length;
+            {chapters.filter(Boolean).map((chap) => {
+              const chapterLeadersCount = leaders.filter(l => l && l.chapter_id === chap.id).length;
               return (
                 <div key={chap.id} className="bg-white border border-outline-variant/30 rounded-xl overflow-hidden shadow-sm flex flex-col hover:shadow-md transition-shadow">
                   <div className="h-28 relative bg-surface-container-low">
@@ -1501,10 +1519,10 @@ export default function AdminTrangHoiVien() {
                 </div>
 
                 <div className="space-y-2 flex-grow overflow-y-auto max-h-[350px] pr-1 no-scrollbar">
-                  {chapterLeaders.length === 0 ? (
+                  {chapterLeaders.filter(Boolean).length === 0 ? (
                     <div className="text-center py-10 text-outline-variant italic">Chưa cấu hình ban lãnh đạo chi hội.</div>
                   ) : (
-                    chapterLeaders.map((lead) => (
+                    chapterLeaders.filter(Boolean).map((lead) => (
                       <div key={lead.id} className="flex items-center justify-between p-2 bg-white border border-outline-variant/20 rounded-lg hover:shadow-sm">
                         <div className="flex items-center gap-2.5">
                           <img

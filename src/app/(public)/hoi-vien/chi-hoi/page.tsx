@@ -95,8 +95,8 @@ function ChapterDetailPageContent() {
             .eq('chapter_id', id)
             .order('order_index', { ascending: true });
 
-          if (leadersData) {
-            setLeaders(leadersData.map((l: any) => ({
+          if (Array.isArray(leadersData)) {
+            setLeaders(leadersData.filter(Boolean).map((l: any) => ({
               ...l,
               role: l.role || l.position || '',
               order: l.order ?? l.order_index ?? 0,
@@ -112,9 +112,9 @@ function ChapterDetailPageContent() {
             .eq('chapter_id', id)
             .eq('status', 'Active');
 
-          if (membersData) {
+          if (Array.isArray(membersData)) {
             setMembers(
-              membersData.map((d: any) => ({
+              membersData.filter(Boolean).map((d: any) => ({
                 id: d.id,
                 company_name: d.company_name,
                 tax_code: d.tax_code,
@@ -142,53 +142,61 @@ function ChapterDetailPageContent() {
         if (savedChaps) {
           try {
             const allChaps: Chapter[] = JSON.parse(savedChaps);
-            const found = allChaps.find(c => c.id === id);
-            if (found) setChapter(found);
+            if (Array.isArray(allChaps)) {
+              const found = allChaps.filter(Boolean).find(c => c.id === id);
+              if (found) setChapter(found);
+            }
           } catch (e) {}
         }
 
         const savedLeaders = localStorage.getItem('hoba_chapter_leaders_list');
         if (savedLeaders) {
           try {
-            const allLeaders: any[] = JSON.parse(savedLeaders);
-            const chLeaders = allLeaders.filter(l => l.chapter_id === id);
-            setLeaders(chLeaders.map(l => ({
-              ...l,
-              role: l.role || l.position || '',
-              order: l.order ?? l.order_index ?? 0,
-              avatarUrl: l.avatarUrl || l.avatar_url || '',
-              company: l.company || '',
-            })).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
+            const parsed = JSON.parse(savedLeaders);
+            if (Array.isArray(parsed)) {
+              const allLeaders = parsed.filter(Boolean);
+              const chLeaders = allLeaders.filter(l => l && l.chapter_id === id);
+              setLeaders(chLeaders.map(l => ({
+                ...l,
+                role: l.role || l.position || '',
+                order: l.order ?? l.order_index ?? 0,
+                avatarUrl: l.avatarUrl || l.avatar_url || '',
+                company: l.company || '',
+              })).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
+            }
           } catch (e) {}
         }
 
         const savedMembers = localStorage.getItem('hoba_website_members');
         if (savedMembers) {
           try {
-            const allMembers: any[] = JSON.parse(savedMembers);
-            const chMembers = allMembers.filter(m => m.chapter_id === id && m.status === 'Active');
-            setMembers(
-              chMembers.map((d: any) => ({
-                id: d.id,
-                company_name: d.company_name,
-                tax_code: d.tax_code,
-                address: d.address,
-                phone: d.phone,
-                email: d.email,
-                business_type: d.business_type,
-                representative_name: d.representative_name,
-                representative_role: d.representative_role,
-                representative_email: d.representative_email,
-                representative_phone: d.representative_phone,
-                status: d.status,
-                association_role: d.association_role || 'Hội viên chính thức',
-                chapter_role: d.chapter_role,
-                join_date: d.join_date ? d.join_date.split('T')[0] : d.created_at?.split('T')[0] || '',
-                logo_url: d.logo_url || d.license_file_url,
-                representative_avatar_url: d.representative_avatar_url || '',
-                chapter_id: d.chapter_id,
-              }))
-            );
+            const parsed = JSON.parse(savedMembers);
+            if (Array.isArray(parsed)) {
+              const allMembers = parsed.filter(Boolean);
+              const chMembers = allMembers.filter(m => m && m.chapter_id === id && m.status === 'Active');
+              setMembers(
+                chMembers.map((d: any) => ({
+                  id: d.id,
+                  company_name: d.company_name,
+                  tax_code: d.tax_code,
+                  address: d.address,
+                  phone: d.phone,
+                  email: d.email,
+                  business_type: d.business_type,
+                  representative_name: d.representative_name,
+                  representative_role: d.representative_role,
+                  representative_email: d.representative_email,
+                  representative_phone: d.representative_phone,
+                  status: d.status,
+                  association_role: d.association_role || 'Hội viên chính thức',
+                  chapter_role: d.chapter_role,
+                  join_date: d.join_date ? d.join_date.split('T')[0] : d.created_at?.split('T')[0] || '',
+                  logo_url: d.logo_url || d.license_file_url,
+                  representative_avatar_url: d.representative_avatar_url || '',
+                  chapter_id: d.chapter_id,
+                }))
+              );
+            }
           } catch (e) {}
         }
       }

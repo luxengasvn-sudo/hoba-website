@@ -61,8 +61,8 @@ export default function ChaptersClientPage({
           const { data: chaptersData, error: chError } = await supabase
             .from('chapters')
             .select('*');
-          if (!chError && chaptersData && chaptersData.length > 0) {
-            const formattedChapters = formatChapters(chaptersData);
+          if (!chError && Array.isArray(chaptersData)) {
+            const formattedChapters = formatChapters(chaptersData.filter(Boolean));
             setChapterList(formattedChapters);
           }
 
@@ -70,8 +70,8 @@ export default function ChaptersClientPage({
             .from('members')
             .select('id, status, chapter_id')
             .eq('status', 'Active');
-          if (!memError && membersData) {
-            setMemberList(membersData);
+          if (!memError && Array.isArray(membersData)) {
+            setMemberList(membersData.filter(Boolean));
           }
         } catch (e) {
           console.error('Error fetching chapters data:', e);
@@ -79,11 +79,21 @@ export default function ChaptersClientPage({
       } else {
         const savedChaps = localStorage.getItem('hoba_chapters_list');
         if (savedChaps) {
-          try { setChapterList(JSON.parse(savedChaps)); } catch (e) {}
+          try {
+            const parsed = JSON.parse(savedChaps);
+            if (Array.isArray(parsed)) {
+              setChapterList(parsed.filter(Boolean));
+            }
+          } catch (e) {}
         }
         const savedMembers = localStorage.getItem('hoba_website_members');
         if (savedMembers) {
-          try { setMemberList(JSON.parse(savedMembers)); } catch (e) {}
+          try {
+            const parsed = JSON.parse(savedMembers);
+            if (Array.isArray(parsed)) {
+              setMemberList(parsed.filter(Boolean));
+            }
+          } catch (e) {}
         }
       }
     }
@@ -92,8 +102,8 @@ export default function ChaptersClientPage({
 
   // Compute final chapters with actual live member counts
   const finalChapters = useMemo(() => {
-    return chapterList.map(ch => {
-      const actualCount = memberList.filter(m => m.chapter_id === ch.id && m.status === 'Active').length;
+    return chapterList.filter(Boolean).map(ch => {
+      const actualCount = memberList.filter(m => m && m.chapter_id === ch.id && m.status === 'Active').length;
       return {
         ...ch,
         memberCount: actualCount || ch.memberCount || 0
@@ -104,8 +114,9 @@ export default function ChaptersClientPage({
   // Filtered Chapters based on Region and Search input
   const filteredChapters = useMemo(() => {
     return finalChapters.filter((c) => {
-      const matchesSearch = c.name.toLowerCase().includes(chapterSearch.toLowerCase()) ||
-                            c.locations.toLowerCase().includes(chapterSearch.toLowerCase());
+      if (!c) return false;
+      const matchesSearch = (c.name || '').toLowerCase().includes(chapterSearch.toLowerCase()) ||
+                            (c.locations || '').toLowerCase().includes(chapterSearch.toLowerCase());
       const matchesRegion = selectedRegion === 'all' || c.region === selectedRegion;
       return matchesSearch && matchesRegion;
     });

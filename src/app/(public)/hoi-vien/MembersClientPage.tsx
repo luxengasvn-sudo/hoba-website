@@ -317,9 +317,11 @@ export default function MembersPage({ initialData = {} }: MembersClientPageProps
           const { data: chaptersData, error: chError } = await supabase
             .from('chapters')
             .select('*');
-          if (!chError && chaptersData && chaptersData.length > 0) {
-            const formattedChapters: Chapter[] = chaptersData.map((c: any) => {
-              chaptersMap[c.id] = c.name;
+          if (!chError && Array.isArray(chaptersData)) {
+            const formattedChapters: Chapter[] = chaptersData.filter(Boolean).map((c: any) => {
+              if (c.id) {
+                chaptersMap[c.id] = c.name;
+              }
               return {
                 id: c.id,
                 name: c.name,
