@@ -118,19 +118,33 @@ const MOCK_MEMBERS: Member[] = [
 ];
 
 const getRoleColor = (roleName: string, configuredRoles: any[]) => {
-  const config = configuredRoles.find(r => 
-    typeof r === 'object' && r !== null ? r.name === roleName : r === roleName
-  );
+  const normalizedRole = (roleName || '').trim().toLowerCase();
+  
+  // 1. Try exact match first
+  let config = configuredRoles.find(r => {
+    const name = typeof r === 'object' && r !== null ? r.name : r;
+    return (name || '').trim().toLowerCase() === normalizedRole;
+  });
+  
+  // 2. Try loose/partial match if exact match fails
+  if (!config) {
+    config = configuredRoles.find(r => {
+      const name = typeof r === 'object' && r !== null ? r.name : r;
+      const normalizedConfigName = (name || '').trim().toLowerCase();
+      return normalizedConfigName.includes(normalizedRole) || normalizedRole.includes(normalizedConfigName);
+    });
+  }
+  
   if (config && typeof config === 'object' && config.color) {
     return { bg: config.color, text: config.textColor || '#ffffff' };
   }
   
-  const normalized = (roleName || '').trim();
-  if (normalized === 'Chủ tịch') return { bg: '#bb0013', text: '#ffffff' };
-  if (normalized === 'Phó Chủ tịch') return { bg: '#00346f', text: '#ffffff' };
-  if (normalized === 'Ban kiểm tra') return { bg: '#d97706', text: '#ffffff' };
-  if (normalized.includes('Thường vụ')) return { bg: '#0284c7', text: '#ffffff' };
-  if (normalized.includes('Chấp hành') || normalized === 'Ủy viên BCH') return { bg: '#d7e2ff', text: '#001b3f' };
+  // Hardcoded fallbacks
+  if (normalizedRole === 'chủ tịch' || normalizedRole.includes('chủ tịch')) return { bg: '#bb0013', text: '#ffffff' };
+  if (normalizedRole === 'phó chủ tịch' || normalizedRole.includes('phó chủ tịch')) return { bg: '#00346f', text: '#ffffff' };
+  if (normalizedRole === 'ban kiểm tra' || normalizedRole.includes('kiểm tra')) return { bg: '#d97706', text: '#ffffff' };
+  if (normalizedRole.includes('thường vụ')) return { bg: '#0284c7', text: '#ffffff' };
+  if (normalizedRole.includes('chấp hành') || normalizedRole === 'ủy viên bch' || normalizedRole.includes('bch')) return { bg: '#d7e2ff', text: '#001b3f' };
   return { bg: '#e7e5e4', text: '#1c1c1a' };
 };
 
