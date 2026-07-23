@@ -135,7 +135,7 @@ export default function AdminTrangChu() {
     { value: '10+', label: 'Đối tác chiến lược', icon: 'handshake' }
   ]);
 
-  const [coreServices, setCoreServices] = useState([
+  const [coreServices, setCoreServices] = useState<any[]>([
     {
       title: 'Kết nối doanh nghiệp',
       desc: 'Mở rộng mạng lưới hợp tác, chia sẻ nguồn lực và tạo dựng các mối quan hệ kinh doanh chiến lược.',
