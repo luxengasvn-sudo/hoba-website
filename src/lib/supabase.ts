@@ -30,7 +30,7 @@ class MockSupabaseBuilder {
   private table: string;
   private method: 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE' | 'UPSERT' = 'SELECT';
   private selects: string = '*';
-  private filters: Array<{ col: string; val: any }> = [];
+  private filters: Array<{ col: string; val: any; op?: string }> = [];
   private orderCol?: string;
   private orderAscending?: boolean;
   private limitCount?: number;
