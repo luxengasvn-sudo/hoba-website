@@ -9,6 +9,9 @@ function checkImageFallback(url: string, defaultUrl: string): string {
   if (url.startsWith('/uploads/')) {
     const localPath = path.join(process.cwd(), 'public', url);
     if (!fs.existsSync(localPath)) {
+      if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+        return `https://hobalpg.vn${url}`;
+      }
       return defaultUrl;
     }
   }
