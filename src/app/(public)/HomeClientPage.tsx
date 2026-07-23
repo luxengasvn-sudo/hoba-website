@@ -506,12 +506,14 @@ export default function HomeClientPage({
                   </div>
                   <h3 className="text-lg font-bold text-primary mb-3">{service.title}</h3>
                   <p className="text-xs text-on-surface-variant leading-relaxed mb-5">{service.desc}</p>
-                  <Link
-                    href="/gioi-thieu"
-                    className="inline-flex items-center gap-1.5 text-secondary font-bold text-xs group-hover:gap-3 transition-all"
-                  >
-                    Chi tiết <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                  </Link>
+                  {service.showLink !== false && (
+                    <Link
+                      href={service.linkUrl || "/gioi-thieu"}
+                      className="inline-flex items-center gap-1.5 text-secondary font-bold text-xs group-hover:gap-3 transition-all"
+                    >
+                      Chi tiết <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                    </Link>
+                  )}
                 </div>
                 <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
                   <span className="material-symbols-outlined text-7xl">{service.bgIcon}</span>

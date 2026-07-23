@@ -819,6 +819,42 @@ export default function AdminTrangChu() {
                         />
                       </div>
                     </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-semibold text-on-surface-variant">Hiển thị nút Chi tiết:</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const currentShow = cs.showLink !== false;
+                            setCoreServices(prev => prev.map((item, i) => i === idx ? { ...item, showLink: !currentShow } : item));
+                          }}
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${
+                            cs.showLink !== false ? 'bg-secondary' : 'bg-outline-variant'
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                              cs.showLink !== false ? 'translate-x-4' : 'translate-x-0.5'
+                            }`}
+                          />
+                        </button>
+                      </div>
+                      {cs.showLink !== false && (
+                        <div className="space-y-1">
+                          <label className="font-semibold block text-[10px] text-on-surface-variant">Đường dẫn chi tiết (URL)</label>
+                          <input
+                            className="w-full h-9 px-3 border border-outline-variant rounded outline-none focus:border-primary"
+                            type="text"
+                            placeholder="/gioi-thieu"
+                            value={cs.linkUrl || ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setCoreServices(prev => prev.map((item, i) => i === idx ? { ...item, linkUrl: val } : item));
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
