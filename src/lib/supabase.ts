@@ -78,6 +78,11 @@ class MockSupabaseBuilder {
     return this;
   }
 
+  neq(col: string, val: any) {
+    this.filters.push({ col, val, op: 'neq' });
+    return this;
+  }
+
   order(col: string, options?: { ascending?: boolean }) {
     this.orderCol = col;
     this.orderAscending = options?.ascending !== false;

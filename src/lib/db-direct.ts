@@ -52,16 +52,19 @@ export async function executeDirectQuery(body: any) {
     if (!filters || filters.length === 0) return '';
     const parts: string[] = [];
     for (const filter of filters) {
-      const { col, val } = filter;
+      const { col, val, op } = filter;
       if (!isSafeIdentifier(col)) {
         throw new Error(`Invalid column identifier in filter: ${col}`);
       }
+      const operator = op === 'neq' ? '<>' : '=';
+
       if (col === 'id' && typeof val === 'string' && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val)) {
-        parts.push("1 = 0"); // Safely return empty without crashing UUID constraints
+        // If we want id <> non-uuid, it's always true!
+        parts.push(op === 'neq' ? "1 = 1" : "1 = 0");
       } else if (val === null) {
-        parts.push(`"${col}" IS NULL`);
+        parts.push(op === 'neq' ? `"${col}" IS NOT NULL` : `"${col}" IS NULL`);
       } else {
-        parts.push(`"${col}" = $${paramCounter++}`);
+        parts.push(`"${col}" ${operator} $${paramCounter++}`);
         queryParams.push(sanitizeParam(table, col, val));
       }
     }
