@@ -56,7 +56,9 @@ export async function executeDirectQuery(body: any) {
       if (!isSafeIdentifier(col)) {
         throw new Error(`Invalid column identifier in filter: ${col}`);
       }
-      if (val === null) {
+      if (col === 'id' && typeof val === 'string' && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val)) {
+        parts.push("1 = 0"); // Safely return empty without crashing UUID constraints
+      } else if (val === null) {
         parts.push(`"${col}" IS NULL`);
       } else {
         parts.push(`"${col}" = $${paramCounter++}`);
