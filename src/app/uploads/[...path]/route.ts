@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
@@ -43,6 +43,10 @@ export async function GET(
     }
 
     if (!fs.existsSync(destinationPath)) {
+      // In development, redirect to production url so local images don't break
+      if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+        return NextResponse.redirect(`https://hobalpg.vn/uploads/${pathParams.join('/')}`);
+      }
       return new Response('File Not Found', { status: 404 });
     }
 
