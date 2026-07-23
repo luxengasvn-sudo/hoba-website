@@ -15,6 +15,13 @@ export default function AdminTrangChu() {
   const [aboutImage, setAboutImage] = useState('https://lh3.googleusercontent.com/aida-public/AB6AXuBqie_pC3yMckoN2RbI--_RMwqaycD-sE8uNjKGm1FYP4SuDo4Bk_DoW8FUfF5HZBFyE2S74tiVXbJg9vHPDi60KxsMnl9tK_9RvcEVcILr8J8xd5TjTAruNuf3db-Gwy4Kb5FvIKtk35uWDdSOWlVsvITLSEFRwOtiZ4946ZRBlOrGlV9a4b40tsttuO67wPg5hKgKI3TVz1c8T_rONHoB_-tlV2x6YjTCExPwRqjjfG4Qm2IJnhUprj3rNJr25ksTMbc-7ceVtUA');
   const [aboutUploading, setAboutUploading] = useState(false);
 
+  const [heroBtn1Show, setHeroBtn1Show] = useState(true);
+  const [heroBtn1Text, setHeroBtn1Text] = useState('Khám phá HOBA');
+  const [heroBtn1Url, setHeroBtn1Url] = useState('/gioi-thieu');
+  const [heroBtn2Show, setHeroBtn2Show] = useState(true);
+  const [heroBtn2Text, setHeroBtn2Text] = useState('Dành cho Hội viên');
+  const [heroBtn2Url, setHeroBtn2Url] = useState('/dang-ky');
+
   // Collapsible configuration blocks state (default collapsed)
   const [expandedSections, setExpandedSections] = useState({
     hero: false,
@@ -215,6 +222,12 @@ export default function AdminTrangChu() {
             if (val.aboutTitle) setAboutTitle(val.aboutTitle);
             if (val.aboutDesc) setAboutDesc(val.aboutDesc);
             if (val.aboutImage) setAboutImage(val.aboutImage);
+            if (val.heroBtn1Show !== undefined) setHeroBtn1Show(val.heroBtn1Show);
+            if (val.heroBtn1Text) setHeroBtn1Text(val.heroBtn1Text);
+            if (val.heroBtn1Url) setHeroBtn1Url(val.heroBtn1Url);
+            if (val.heroBtn2Show !== undefined) setHeroBtn2Show(val.heroBtn2Show);
+            if (val.heroBtn2Text) setHeroBtn2Text(val.heroBtn2Text);
+            if (val.heroBtn2Url) setHeroBtn2Url(val.heroBtn2Url);
             if (val.featuredMembers && Array.isArray(val.featuredMembers)) {
               setFeaturedMembers(val.featuredMembers);
             } else if (val.featuredMemberIds && Array.isArray(val.featuredMemberIds)) {
@@ -259,6 +272,12 @@ export default function AdminTrangChu() {
           if (val.aboutTitle) setAboutTitle(val.aboutTitle);
           if (val.aboutDesc) setAboutDesc(val.aboutDesc);
           if (val.aboutImage) setAboutImage(val.aboutImage);
+          if (val.heroBtn1Show !== undefined) setHeroBtn1Show(val.heroBtn1Show);
+          if (val.heroBtn1Text) setHeroBtn1Text(val.heroBtn1Text);
+          if (val.heroBtn1Url) setHeroBtn1Url(val.heroBtn1Url);
+          if (val.heroBtn2Show !== undefined) setHeroBtn2Show(val.heroBtn2Show);
+          if (val.heroBtn2Text) setHeroBtn2Text(val.heroBtn2Text);
+          if (val.heroBtn2Url) setHeroBtn2Url(val.heroBtn2Url);
           if (val.featuredMembers && Array.isArray(val.featuredMembers)) {
             setFeaturedMembers(val.featuredMembers);
           } else if (val.featuredMemberIds && Array.isArray(val.featuredMemberIds)) {
@@ -295,7 +314,11 @@ export default function AdminTrangChu() {
           .from('website_config')
           .upsert({
             key: 'homepage',
-            value: { headline, subtext, sections, features, heroImage, stats, coreServices, aboutTitle, aboutDesc, aboutImage, featuredMembers }
+            value: {
+              headline, subtext, sections, features, heroImage, stats, coreServices, aboutTitle, aboutDesc, aboutImage, featuredMembers,
+              heroBtn1Show, heroBtn1Text, heroBtn1Url,
+              heroBtn2Show, heroBtn2Text, heroBtn2Url
+            }
           });
         if (error) throw error;
       } catch (err) {
@@ -304,7 +327,9 @@ export default function AdminTrangChu() {
       }
     } else {
       localStorage.setItem('hoba_website_config_homepage', JSON.stringify({
-        headline, subtext, sections, features, heroImage, stats, coreServices, aboutTitle, aboutDesc, aboutImage, featuredMembers
+        headline, subtext, sections, features, heroImage, stats, coreServices, aboutTitle, aboutDesc, aboutImage, featuredMembers,
+        heroBtn1Show, heroBtn1Text, heroBtn1Url,
+        heroBtn2Show, heroBtn2Text, heroBtn2Url
       }));
     }
 
@@ -429,6 +454,96 @@ export default function AdminTrangChu() {
                       value={subtext}
                       onChange={(e) => setSubtext(e.target.value)}
                     />
+                  </div>
+
+                  {/* Cấu hình Nút Hero 1 */}
+                  <div className="border border-outline-variant/40 rounded-lg p-4 bg-surface-container-low space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-primary text-sm">Nút thứ nhất (Mặc định: Khám phá HOBA)</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-on-surface-variant">Hiển thị:</span>
+                        <button
+                          type="button"
+                          onClick={() => setHeroBtn1Show(!heroBtn1Show)}
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${
+                            heroBtn1Show ? 'bg-primary' : 'bg-outline-variant'
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                              heroBtn1Show ? 'translate-x-4' : 'translate-x-0.5'
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
+                    {heroBtn1Show && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-semibold text-on-surface-variant">Tên nút</label>
+                          <input
+                            className="w-full h-9 px-3 border border-outline-variant rounded outline-none focus:border-primary"
+                            type="text"
+                            value={heroBtn1Text}
+                            onChange={(e) => setHeroBtn1Text(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-semibold text-on-surface-variant">Đường dẫn (URL)</label>
+                          <input
+                            className="w-full h-9 px-3 border border-outline-variant rounded outline-none focus:border-primary"
+                            type="text"
+                            value={heroBtn1Url}
+                            onChange={(e) => setHeroBtn1Url(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Cấu hình Nút Hero 2 */}
+                  <div className="border border-outline-variant/40 rounded-lg p-4 bg-surface-container-low space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-primary text-sm">Nút thứ hai (Mặc định: Dành cho Hội viên)</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-on-surface-variant">Hiển thị:</span>
+                        <button
+                          type="button"
+                          onClick={() => setHeroBtn2Show(!heroBtn2Show)}
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${
+                            heroBtn2Show ? 'bg-primary' : 'bg-outline-variant'
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                              heroBtn2Show ? 'translate-x-4' : 'translate-x-0.5'
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
+                    {heroBtn2Show && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-semibold text-on-surface-variant">Tên nút</label>
+                          <input
+                            className="w-full h-9 px-3 border border-outline-variant rounded outline-none focus:border-primary"
+                            type="text"
+                            value={heroBtn2Text}
+                            onChange={(e) => setHeroBtn2Text(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-semibold text-on-surface-variant">Đường dẫn (URL)</label>
+                          <input
+                            className="w-full h-9 px-3 border border-outline-variant rounded outline-none focus:border-primary"
+                            type="text"
+                            value={heroBtn2Url}
+                            onChange={(e) => setHeroBtn2Url(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="space-y-2">

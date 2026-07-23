@@ -49,6 +49,12 @@ export default async function Page() {
     initialData.aboutTitle = val.aboutTitle || defaultHomePage.aboutTitle;
     initialData.aboutDesc = val.aboutDesc || defaultHomePage.aboutDesc;
     initialData.aboutImage = checkImageFallback(val.aboutImage, defaultHomePage.aboutImage);
+    initialData.heroBtn1Show = val.heroBtn1Show !== false;
+    initialData.heroBtn1Text = val.heroBtn1Text || "Khám phá HOBA";
+    initialData.heroBtn1Url = val.heroBtn1Url || "/gioi-thieu";
+    initialData.heroBtn2Show = val.heroBtn2Show !== false;
+    initialData.heroBtn2Text = val.heroBtn2Text || "Dành cho Hội viên";
+    initialData.heroBtn2Url = val.heroBtn2Url || "/dang-ky";
 
     // 3. Fetch featured members configuration
     let loadedFeaturedMembers: any[] = [];

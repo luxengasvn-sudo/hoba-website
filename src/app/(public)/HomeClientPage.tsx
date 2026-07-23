@@ -60,6 +60,13 @@ export default function HomeClientPage({
 
   const [headline, setHeadline] = useState(initialData.headline || defaultHomePage.headline);
   const [subtext, setSubtext] = useState(initialData.subtext || defaultHomePage.subtext);
+
+  const [heroBtn1Show, setHeroBtn1Show] = useState(initialData.heroBtn1Show !== false);
+  const [heroBtn1Text, setHeroBtn1Text] = useState(initialData.heroBtn1Text || "Khám phá HOBA");
+  const [heroBtn1Url, setHeroBtn1Url] = useState(initialData.heroBtn1Url || "/gioi-thieu");
+  const [heroBtn2Show, setHeroBtn2Show] = useState(initialData.heroBtn2Show !== false);
+  const [heroBtn2Text, setHeroBtn2Text] = useState(initialData.heroBtn2Text || "Dành cho Hội viên");
+  const [heroBtn2Url, setHeroBtn2Url] = useState(initialData.heroBtn2Url || "/dang-ky");
   const [aboutTitle, setAboutTitle] = useState(initialData.aboutTitle || defaultHomePage.aboutTitle);
   const [aboutDesc, setAboutDesc] = useState(initialData.aboutDesc || defaultHomePage.aboutDesc);
   const [aboutImage, setAboutImage] = useState(initialData.aboutImage || defaultHomePage.aboutImage);
@@ -175,6 +182,12 @@ export default function HomeClientPage({
             if (val.stats) setStats(val.stats);
             if (val.coreServices) setCoreServices(val.coreServices);
             if (val.aboutTitle) setAboutTitle(val.aboutTitle);
+            setHeroBtn1Show(val.heroBtn1Show !== false);
+            if (val.heroBtn1Text) setHeroBtn1Text(val.heroBtn1Text);
+            if (val.heroBtn1Url) setHeroBtn1Url(val.heroBtn1Url);
+            setHeroBtn2Show(val.heroBtn2Show !== false);
+            if (val.heroBtn2Text) setHeroBtn2Text(val.heroBtn2Text);
+            if (val.heroBtn2Url) setHeroBtn2Url(val.heroBtn2Url);
             if (val.aboutDesc) setAboutDesc(val.aboutDesc);
             if (val.aboutImage) setAboutImage(val.aboutImage);
           } catch (e) {}
@@ -242,6 +255,12 @@ export default function HomeClientPage({
               if (val.coreServices) setCoreServices(val.coreServices);
               if (val.aboutTitle) setAboutTitle(val.aboutTitle);
               if (val.aboutDesc) setAboutDesc(val.aboutDesc);
+              setHeroBtn1Show(val.heroBtn1Show !== false);
+              if (val.heroBtn1Text) setHeroBtn1Text(val.heroBtn1Text);
+              if (val.heroBtn1Url) setHeroBtn1Url(val.heroBtn1Url);
+              setHeroBtn2Show(val.heroBtn2Show !== false);
+              if (val.heroBtn2Text) setHeroBtn2Text(val.heroBtn2Text);
+              if (val.heroBtn2Url) setHeroBtn2Url(val.heroBtn2Url);
               if (val.aboutImage) setAboutImage(val.aboutImage);
             }
           } catch (e) {
@@ -382,18 +401,22 @@ export default function HomeClientPage({
             {subtext}
           </p>
           <div className="flex flex-wrap gap-4 pt-4">
-            <Link
-              href="/gioi-thieu"
-              className="bg-secondary text-white px-8 py-4 rounded-full font-bold text-base hover:shadow-[0_0_30px_rgba(187,0,19,0.3)] hover:-translate-y-0.5 transition-all flex items-center gap-2"
-            >
-              Khám phá HOBA <span className="material-symbols-outlined text-xl">arrow_forward</span>
-            </Link>
-            <Link
-              href="/dang-ky"
-              className="px-8 py-4 rounded-full font-bold text-base text-white border-2 border-white/40 hover:bg-white/10 transition-all backdrop-blur-sm"
-            >
-              Dành cho Hội viên
-            </Link>
+            {heroBtn1Show && (
+              <Link
+                href={heroBtn1Url}
+                className="bg-secondary text-white px-8 py-4 rounded-full font-bold text-base hover:shadow-[0_0_30px_rgba(187,0,19,0.3)] hover:-translate-y-0.5 transition-all flex items-center gap-2"
+              >
+                {heroBtn1Text} <span className="material-symbols-outlined text-xl">arrow_forward</span>
+              </Link>
+            )}
+            {heroBtn2Show && (
+              <Link
+                href={heroBtn2Url}
+                className="px-8 py-4 rounded-full font-bold text-base text-white border-2 border-white/40 hover:bg-white/10 transition-all backdrop-blur-sm"
+              >
+                {heroBtn2Text}
+              </Link>
+            )}
           </div>
         </div>
       </div>
